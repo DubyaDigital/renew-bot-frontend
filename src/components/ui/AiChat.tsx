@@ -22,54 +22,114 @@ import { ScrollArea } from "./scroll-area"
 import { useSocket } from "@/context/SocketContext"
 import errorToast from "@/lib/toast/error.toast"
 
+interface Message {
+    role: "user" | "agent";
+    content: string;
+}
 
-
-export function Chat() {
+export function AiChat() {
     const socket = useSocket()
-    const [messages, setMessages] = React.useState([
+    const [messages, setMessages] = React.useState<Message[]>([
         {
             role: "agent",
             content: "Hi, what brings you here today?",
         },
     ])
+    debugger
     const [input, setInput] = React.useState("")
+    const [isStreaming, setIsStreaming] = React.useState(false)
+    const [currentStreamingMessage, setCurrentStreamingMessage] = React.useState("")
     const inputLength = input.trim().length
     const scrollAreaRef = React.useRef<HTMLDivElement>(null)
 
     React.useEffect(() => {
         // Scroll to the bottom of the chat
         scrollAreaRef.current?.scrollIntoView(false)
-    }, [messages.length])
+    }, [messages.length, currentStreamingMessage])
 
-    const onSubmit = (event : React.FormEvent<HTMLFormElement>) => {
+    React.useEffect(() => {
+        if (!socket) return
+
+
+        socket.on('response', (chunk: {message: string}) => {
+            debugger
+            const message = chunk.message
+            let count = 0
+            if (message === "Relevant context retrieved and sent to OpenAI for processing.") {
+                return
+            }
+            if(message === "") {
+                count = count + 1
+            }
+            if(count > 0 && message === "") {
+                if (currentStreamingMessage) {
+                    setMessages(prev => [
+                        ...prev,
+                        { role: "agent", content: currentStreamingMessage }
+                    ])
+                    setCurrentStreamingMessage("")
+                    setIsStreaming(false)
+                    return
+                }
+            } 
+            setIsStreaming(true)
+            setCurrentStreamingMessage(prev => prev + message)
+        })
+
+
+        socket.on('response_end', () => {
+            debugger
+            // When streaming is complete, add the full message to messages
+            if (currentStreamingMessage) {
+                setMessages(prev => [
+                    ...prev,
+                    { role: "agent", content: currentStreamingMessage }
+                ])
+                setCurrentStreamingMessage("")
+                setIsStreaming(false)
+            }
+        })
+
+        return () => {
+            socket.off('response')
+            socket.off('response_end')
+        }
+    }, [socket, currentStreamingMessage])
+
+    const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        if(!socket) {
+        if (!socket) {
             errorToast("Connection not established yet!")
             return
         }
+
         if (inputLength === 0) return
-        setMessages([
-            ...messages,
-            {
-                role: "user",
-                content: input,
-            },
-        ])
-        socket.emit("message", { query: input })
+
+        // Add user message
+        const userMessage: Message = {
+            role: "user",
+            content: input,
+        }
+        setMessages(prev => [...prev, userMessage])
+
+        // Send message via socket
+        socket.emit('message', { query: input })
+
+        // Reset input
         setInput("")
     }
-    
+
     return (
         <Card className="h-full p-0 grid grid-rows-[auto_1fr_auto] shadow-none rounded-none border-none">
             <CardHeader className="flex flex-row items-center p-0 pb-3 border-b">
                 <div className="flex items-center space-x-3">
                     <Avatar>
                         <AvatarImage src="/avatars/01.png" alt="Image" />
-                        <AvatarFallback><Bot  className="text-primary"/></AvatarFallback>
+                        <AvatarFallback><Bot className="text-primary" /></AvatarFallback>
                     </Avatar>
                     <div>
                         <p className="text-sm font-medium leading-none">Syed Zayn</p>
-                        <p className="text-sm text-muted-foreground">zayn@axmple.com</p>
+                        <p className="text-sm text-muted-foreground">zayn@example.com</p>
                     </div>
                 </div>
             </CardHeader>
@@ -89,6 +149,11 @@ export function Chat() {
                                 {message.content}
                             </div>
                         ))}
+                        {isStreaming && (
+                            <div className="flex max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm w-full break-words bg-muted">
+                                {currentStreamingMessage}
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
             </CardContent>
@@ -105,10 +170,12 @@ export function Chat() {
                             autoComplete="off"
                             value={input}
                             onChange={(event) => setInput(event.target.value)}
+                            // disabled={isStreaming}
                         />
-                        <Button 
-                            type="submit" 
-                            size="icon" 
+                        <Button
+                            type="submit"
+                            size="icon"
+                            // disabled={inputLength === 0 || isStreaming}
                             disabled={inputLength === 0}
                             className="absolute right-2 rounded-full"
                         >

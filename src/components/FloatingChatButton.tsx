@@ -10,7 +10,8 @@ import {  useState } from "react"
 import Image from "next/image"
 import { logoImg } from "@/constants/images"
 import { BotMessageSquare, SendHorizontal } from "lucide-react"
-import { Chat } from "./ui/chat"
+// import { Chat } from "./ui/chat"
+import { AiChat } from "./ui/AiChat"
 
 export default function FloatingChatButton() {
 
@@ -38,7 +39,7 @@ export default function FloatingChatButton() {
                                 className="w-20"
                             />
                             <div className="flex flex-col leading-none pt-10">
-                                <h1 className="text-2xl text-gray-500 font-semibold">Hi Gabriel &#128075;</h1>
+                                <h1 className="text-2xl text-gray-500 font-semibold">Hi John &#128075;</h1>
                                 <h2 className="text-2xl font-semibold">How can we help?</h2>
                             </div>
                             <Button 
@@ -50,7 +51,7 @@ export default function FloatingChatButton() {
                                 <SendHorizontal className="text-primary" />
                             </Button>
                         </> :
-                        <Chat />
+                        <AiChat />
                 }
             </PopoverContent>
         </Popover>
