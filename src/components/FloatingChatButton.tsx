@@ -33,7 +33,7 @@ export default function FloatingChatButton() {
                 {
                     !isChatOpen ?
                         <>
-                            <h1 className="font-semibold text-sm border p-2 rounded self-start">Logo</h1>
+                            <h1 className="font-semibold text-sm border p-2 rounded self-start">RENEW</h1>
                             <div className="flex flex-col leading-none pt-10">
                                 <h1 className="text-2xl text-gray-500 font-semibold">Hi John &#128075;</h1>
                                 <h2 className="text-2xl font-semibold">How can we help?</h2>
