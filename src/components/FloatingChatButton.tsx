@@ -7,8 +7,8 @@ import {
 } from "@/components/ui/popover"
 import { Button } from "./ui/button"
 import {  useState } from "react"
-import Image from "next/image"
-import { logoImg } from "@/constants/images"
+// import Image from "next/image"
+// import { logoImg } from "@/constants/images"
 import { BotMessageSquare, SendHorizontal } from "lucide-react"
 // import { Chat } from "./ui/chat"
 import { AiChat } from "./ui/AiChat"
@@ -33,11 +33,7 @@ export default function FloatingChatButton() {
                 {
                     !isChatOpen ?
                         <>
-                            <Image
-                                src={logoImg}
-                                alt="logo"
-                                className="w-20"
-                            />
+                            <h1 className="font-semibold text-sm border p-2 rounded self-start">Logo</h1>
                             <div className="flex flex-col leading-none pt-10">
                                 <h1 className="text-2xl text-gray-500 font-semibold">Hi John &#128075;</h1>
                                 <h2 className="text-2xl font-semibold">How can we help?</h2>
