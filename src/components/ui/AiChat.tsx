@@ -35,7 +35,6 @@ export function AiChat() {
             content: "Hi, what brings you here today?",
         },
     ])
-    debugger
     const [input, setInput] = React.useState("")
     const [isStreaming, setIsStreaming] = React.useState(false)
     const [currentStreamingMessage, setCurrentStreamingMessage] = React.useState("")
@@ -52,7 +51,6 @@ export function AiChat() {
 
 
         socket.on('response', (chunk: {message: string}) => {
-            debugger
             const message = chunk.message
             let count = 0
             if (message === "Relevant context retrieved and sent to OpenAI for processing.") {
@@ -128,8 +126,8 @@ export function AiChat() {
                         <AvatarFallback><Bot className="text-primary" /></AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="text-sm font-medium leading-none">Syed Zayn</p>
-                        <p className="text-sm text-muted-foreground">zayn@example.com</p>
+                        <p className="text-sm font-medium leading-none">Renew AI</p>
+                        <p className="text-sm text-muted-foreground">renew@ai.com</p>
                     </div>
                 </div>
             </CardHeader>
