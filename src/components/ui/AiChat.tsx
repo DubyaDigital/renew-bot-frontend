@@ -21,6 +21,7 @@ import { Button } from "@/ui/button"
 import { ScrollArea } from "./scroll-area"
 import { useSocket } from "@/context/SocketContext"
 import errorToast from "@/lib/toast/error.toast"
+import ChatLoader from "../ChatLoader"
 
 interface Message {
     role: "user" | "agent";
@@ -29,6 +30,7 @@ interface Message {
 
 export function AiChat() {
     const socket = useSocket()
+    const [isThinking, setIsThinking] = React.useState(false)
     const [messages, setMessages] = React.useState<Message[]>([
         {
             role: "agent",
@@ -48,18 +50,14 @@ export function AiChat() {
 
     React.useEffect(() => {
         if (!socket) return
-
-
         socket.on('response', (chunk: {message: string}) => {
+            debugger
             const message = chunk.message
-            let count = 0
+            const responseEnded = message === " - Response Ended"
             if (message === "Relevant context retrieved and sent to OpenAI for processing.") {
                 return
             }
-            if(message === "") {
-                count = count + 1
-            }
-            if(count > 0 && message === "") {
+            if(responseEnded) {
                 if (currentStreamingMessage) {
                     setMessages(prev => [
                         ...prev,
@@ -67,11 +65,13 @@ export function AiChat() {
                     ])
                     setCurrentStreamingMessage("")
                     setIsStreaming(false)
+                    setIsThinking(false)
                     return
                 }
             } 
             setIsStreaming(true)
             setCurrentStreamingMessage(prev => prev + message)
+            setIsThinking(false)
         })
 
 
@@ -102,7 +102,7 @@ export function AiChat() {
         }
 
         if (inputLength === 0) return
-
+        setIsThinking(true)
         // Add user message
         const userMessage: Message = {
             role: "user",
@@ -132,6 +132,7 @@ export function AiChat() {
                 </div>
             </CardHeader>
             <CardContent className="h-full p-0 pt-5 pt-auto overflow-y-auto flex flex-col justify-end">
+                
                 <ScrollArea className="">
                     <div className="space-y-3" ref={scrollAreaRef}>
                         {messages.map((message, index) => (
@@ -154,8 +155,10 @@ export function AiChat() {
                         )}
                     </div>
                 </ScrollArea>
+                {isThinking && <ChatLoader />}
             </CardContent>
-            <CardFooter className="p-0 pb-0 pt-5">
+            <CardFooter className="p-0 pb-0 pt-5 flex-col">
+                
                 <form
                     onSubmit={onSubmit}
                     className="flex w-full items-center space-x-2"

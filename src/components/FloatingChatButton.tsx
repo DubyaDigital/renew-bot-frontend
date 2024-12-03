@@ -7,10 +7,7 @@ import {
 } from "@/components/ui/popover"
 import { Button } from "./ui/button"
 import {  useState } from "react"
-// import Image from "next/image"
-// import { logoImg } from "@/constants/images"
 import { BotMessageSquare, SendHorizontal } from "lucide-react"
-// import { Chat } from "./ui/chat"
 import { AiChat } from "./ui/AiChat"
 
 export default function FloatingChatButton() {
