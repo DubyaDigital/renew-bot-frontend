@@ -9,6 +9,8 @@ import { Button } from "./ui/button"
 import {  useState } from "react"
 import { BotMessageSquare, SendHorizontal } from "lucide-react"
 import { AiChat } from "./ui/AiChat"
+import Image from "next/image"
+import { logoImg } from "@/constants/images"
 
 export default function FloatingChatButton() {
 
@@ -24,15 +26,20 @@ export default function FloatingChatButton() {
             </PopoverTrigger>
             <PopoverContent
                 onInteractOutside={(e) => e.preventDefault()}
-                className="h-[500px] mr-10 flex flex-col gap-5 w-[300px]"
+                className="h-[500px] mr-10 flex flex-col gap-5 min-w-[300px] md:min-w-[350px]"
                 sideOffset={12}
             >
                 {
                     !isChatOpen ?
                         <>
-                            <h1 className="font-semibold text-sm border p-2 rounded self-start">RENEW</h1>
+                            {/* <h1 className="font-semibold text-sm border p-2 rounded self-start">RENEW</h1> */}
+                            <Image 
+                                src={logoImg}
+                                alt="Renew Logo"
+                                className="w-[50px]"
+                            />
                             <div className="flex flex-col leading-none pt-10">
-                                <h1 className="text-2xl text-gray-500 font-semibold">Hi John &#128075;</h1>
+                                {/* <h1 className="text-2xl text-gray-500 font-semibold">Hi John &#128075;</h1> */}
                                 <h2 className="text-2xl font-semibold">How can we help?</h2>
                             </div>
                             <Button 

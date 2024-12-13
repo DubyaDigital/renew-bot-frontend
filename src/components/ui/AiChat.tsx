@@ -126,8 +126,8 @@ export function AiChat() {
                         <AvatarFallback><Bot className="text-primary" /></AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="text-sm font-medium leading-none">Renew AI</p>
-                        <p className="text-sm text-muted-foreground">renew@ai.com</p>
+                        <p className="text-sm font-medium leading-none">Renew.org Assistant</p>
+                        <p className="text-sm text-muted-foreground">renew.org</p>
                     </div>
                 </div>
             </CardHeader>
@@ -141,7 +141,7 @@ export function AiChat() {
                                 className={cn(
                                     "flex max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm w-full break-words",
                                     message.role === "user"
-                                        ? "ml-auto bg-primary text-primary-foreground"
+                                        ? "ml-auto bg-primary text-black font-medium"
                                         : "bg-muted"
                                 )}
                             >
