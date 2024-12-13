@@ -47,7 +47,7 @@ const parseLinksInText = (text: string) => {
             <Link
                 key={`link-${match.index}`}
                 href={match[2]}
-                className="italic break-words contents hover:text-primary"
+                className="italic break-words font-semibold underline hover:text-primary"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -173,7 +173,7 @@ export function AiChat() {
                             <div
                                 key={index}
                                 className={cn(
-                                    "flex max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm w-full break-words",
+                                    "max-w-[75%] rounded-lg px-3 py-2 text-sm w-full break-words",
                                     message.role === "user"
                                         ? "ml-auto bg-primary text-black font-medium"
                                         : "bg-muted"
