@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Bot, Send } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -28,6 +29,43 @@ interface Message {
     content: string;
 }
 
+// Function to parse markdown-like links
+const parseLinksInText = (text: string) => {
+    const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+    const parts: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+        // Add text before the link
+        if (match.index > lastIndex) {
+            parts.push(text.slice(lastIndex, match.index));
+        }
+
+        // Add the link as a Next.js Link
+        parts.push(
+            <Link
+                key={`link-${match.index}`}
+                href={match[2]}
+                className="italic break-words contents hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                {match[1]}
+            </Link>
+        );
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add any remaining text after the last link
+    if (lastIndex < text.length) {
+        parts.push(text.slice(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+};
+
 export function AiChat() {
     const socket = useSocket()
     const [isThinking, setIsThinking] = React.useState(false)
@@ -50,14 +88,13 @@ export function AiChat() {
 
     React.useEffect(() => {
         if (!socket) return
-        socket.on('response', (chunk: {message: string}) => {
-            debugger
+        socket.on('response', (chunk: { message: string }) => {
             const message = chunk.message
             const responseEnded = message === " - Response Ended"
             if (message === "Relevant context retrieved and sent to OpenAI for processing.") {
                 return
             }
-            if(responseEnded) {
+            if (responseEnded) {
                 if (currentStreamingMessage) {
                     setMessages(prev => [
                         ...prev,
@@ -68,15 +105,13 @@ export function AiChat() {
                     setIsThinking(false)
                     return
                 }
-            } 
+            }
             setIsStreaming(true)
             setCurrentStreamingMessage(prev => prev + message)
             setIsThinking(false)
         })
 
-
         socket.on('response_end', () => {
-            debugger
             // When streaming is complete, add the full message to messages
             if (currentStreamingMessage) {
                 setMessages(prev => [
@@ -132,7 +167,6 @@ export function AiChat() {
                 </div>
             </CardHeader>
             <CardContent className="h-full p-0 pt-5 pt-auto overflow-y-auto flex flex-col justify-end">
-                
                 <ScrollArea className="">
                     <div className="space-y-3" ref={scrollAreaRef}>
                         {messages.map((message, index) => (
@@ -145,12 +179,15 @@ export function AiChat() {
                                         : "bg-muted"
                                 )}
                             >
-                                {message.content}
+                                {message.role === "agent"
+                                    ? parseLinksInText(message.content)
+                                    : message.content
+                                }
                             </div>
                         ))}
                         {isStreaming && (
                             <div className="flex max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm w-full break-words bg-muted">
-                                {currentStreamingMessage}
+                                {parseLinksInText(currentStreamingMessage)}
                             </div>
                         )}
                     </div>
@@ -158,7 +195,6 @@ export function AiChat() {
                 {isThinking && <ChatLoader />}
             </CardContent>
             <CardFooter className="p-0 pb-0 pt-5 flex-col">
-                
                 <form
                     onSubmit={onSubmit}
                     className="flex w-full items-center space-x-2"
@@ -171,12 +207,10 @@ export function AiChat() {
                             autoComplete="off"
                             value={input}
                             onChange={(event) => setInput(event.target.value)}
-                            // disabled={isStreaming}
                         />
                         <Button
                             type="submit"
                             size="icon"
-                            // disabled={inputLength === 0 || isStreaming}
                             disabled={inputLength === 0}
                             className="absolute right-2 rounded-full"
                         >
