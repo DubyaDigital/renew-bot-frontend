@@ -31,15 +31,15 @@ export default function FloatingChatButton() {
             >
                 {
                     !isChatOpen ?
-                        <>
+                        <div className="flex flex-col h-full">
                             {/* <h1 className="font-semibold text-sm border p-2 rounded self-start">RENEW</h1> */}
                             <Image 
                                 src={logoImg}
                                 alt="Renew Logo"
                                 className="w-[50px]"
                             />
-                            <div className="flex flex-col leading-none pt-10">
-                                {/* <h1 className="text-2xl text-gray-500 font-semibold">Hi John &#128075;</h1> */}
+                            <div className="flex flex-col leading-none pt-16 pb-5">
+                                <h1 className="text-2xl text-gray-500 font-semibold">Hi &#128075;</h1>
                                 <h2 className="text-2xl font-semibold">How can we help?</h2>
                             </div>
                             <Button 
@@ -50,7 +50,7 @@ export default function FloatingChatButton() {
                                 <span>Send us a message</span>
                                 <SendHorizontal className="text-primary" />
                             </Button>
-                        </> :
+                        </div> :
                         <AiChat />
                 }
             </PopoverContent>

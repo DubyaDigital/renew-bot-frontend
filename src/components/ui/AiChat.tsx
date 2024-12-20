@@ -81,10 +81,15 @@ export function AiChat() {
     const inputLength = input.trim().length
     const scrollAreaRef = React.useRef<HTMLDivElement>(null)
 
+    // React.useEffect(() => {
+    //     // Scroll to the bottom of the chat
+        // scrollAreaRef.current?.scrollIntoView(false)
+    // }, [messages.length, currentStreamingMessage])
+
     React.useEffect(() => {
         // Scroll to the bottom of the chat
         scrollAreaRef.current?.scrollIntoView(false)
-    }, [messages.length, currentStreamingMessage])
+    }, [isThinking])
 
     React.useEffect(() => {
         if (!socket) return
@@ -144,7 +149,7 @@ export function AiChat() {
             content: input,
         }
         setMessages(prev => [...prev, userMessage])
-
+        scrollAreaRef.current?.scrollIntoView(false)
         // Send message via socket
         socket.emit('message', { query: input })
 
@@ -167,7 +172,7 @@ export function AiChat() {
                 </div>
             </CardHeader>
             <CardContent className="h-full p-0 pt-5 pt-auto overflow-y-auto flex flex-col justify-end">
-                <ScrollArea className="">
+                <ScrollArea className="" scrollHideDelay={800000}>
                     <div className="space-y-3" ref={scrollAreaRef}>
                         {messages.map((message, index) => (
                             <div
