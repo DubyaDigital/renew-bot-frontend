@@ -1,8 +1,8 @@
 "use client"
 
 import errorToast from '@/lib/toast/error.toast';
-import successToast from '@/lib/toast/success.toast';
-import warningToast from '@/lib/toast/warning.toast';
+// import successToast from '@/lib/toast/success.toast';
+// import warningToast from '@/lib/toast/warning.toast';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useState } from 'react';
 import io, { Socket } from 'socket.io-client';
 
@@ -26,7 +26,7 @@ export const SocketProvider = ({ children }: PropsWithChildren) => {
         });
 
         newSocket.on('connect', () => {
-            successToast('Socket connected');
+            // successToast('Socket connected');
         });
 
         // newSocket.on("response", (args) => {
@@ -37,12 +37,12 @@ export const SocketProvider = ({ children }: PropsWithChildren) => {
         // })
 
         newSocket.on('disconnect', () => {
-            warningToast('Socket disconnected');
+            // warningToast('Socket disconnected');
         });
 
-        newSocket.on('connect_error', (error) => {
-            errorToast(`Connection error: ${error.message}`);
-        });
+        // newSocket.on('connect_error', (error) => {
+            // errorToast(`Connection error: ${error.message}`);
+        // });
 
         setSocket(newSocket);
 
