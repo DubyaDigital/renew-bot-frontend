@@ -14,6 +14,7 @@
             script.onload = resolve;
             script.onerror = reject;
             document.head.appendChild(script);
+            
         });
     };
 
