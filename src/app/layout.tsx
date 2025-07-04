@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import 'react-chat-elements/dist/main.css'
 import { SocketProvider } from "@/context/SocketContext";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
