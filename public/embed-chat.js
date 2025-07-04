@@ -1,4 +1,4 @@
-(function() {
+(function () {
     // Load required styles and scripts
     const loadStylesheet = (url) => {
         const link = document.createElement('link');
@@ -14,7 +14,6 @@
             script.onload = resolve;
             script.onerror = reject;
             document.head.appendChild(script);
-            
         });
     };
 
@@ -23,7 +22,7 @@
         .then(() => {
             // Load required styles
             loadStylesheet('https://renewchatbot2.vercel.app/styles.css');
-            
+
             // Create a shadow DOM container
             const container = document.createElement('div');
             container.id = 'renew-chat-container';
@@ -286,7 +285,7 @@
             const chatContainer = document.createElement('div');
             chatContainer.className = 'chat-container';
             chatContainer.style.display = 'none'; // Ensure it starts hidden
-            
+
             // Add chat content
             chatContainer.innerHTML = `
                 <div class="chat-header">
@@ -393,7 +392,7 @@
                 messageDiv.className = `message ${role === 'user' ? 'user' : 'bot'}`;
                 setInnerHTML(messageDiv, linkify(content));
                 messagesContainer.appendChild(messageDiv);
-                if(role === 'user') {
+                if (role === 'user') {
                     scrollToBottom();
                 }
                 messages.push({ role, content });
@@ -506,7 +505,7 @@
                 if (message === " - Response Ended") {
                     return;
                 }
-                
+
                 // Find or create the current bot message
                 const messagesContainer = shadowRoot.querySelector('#chat-messages');
                 let currentBotMessage = messagesContainer.lastElementChild;
@@ -515,7 +514,7 @@
                     currentBotMessage.className = 'message bot';
                     messagesContainer.appendChild(currentBotMessage);
                 }
-                
+
                 // Append the new chunk of text and linkify it
                 const currentText = currentBotMessage.textContent || '';
                 setInnerHTML(currentBotMessage, linkify(currentText + message));
@@ -541,11 +540,11 @@
                 visualViewport.addEventListener('resize', () => {
                     const chatContainer = shadowRoot.querySelector('.chat-container');
                     const chatButton = shadowRoot.querySelector('.chat-button');
-                    
+
                     if (!chatContainer || !chatButton) return;
 
                     const isKeyboardOpen = visualViewport.height < window.innerHeight;
-                    
+
                     chatContainer.classList.toggle('keyboard-open', isKeyboardOpen);
                     chatButton.classList.toggle('hidden', isKeyboardOpen);
 
@@ -602,7 +601,7 @@
             const messagesContainer = shadowRoot.querySelector('#chat-messages');
             messagesContainer.addEventListener('wheel', (e) => {
                 const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-                
+
                 // Prevent scroll propagation when at the top or bottom
                 if (
                     (scrollTop <= 0 && e.deltaY < 0) || // At top and scrolling up
@@ -623,7 +622,7 @@
 
                 const touchY = e.touches[0].clientY;
                 const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-                
+
                 // Prevent scroll propagation when at the boundaries
                 if (
                     (scrollTop <= 0 && touchY > touchStartY) || // At top and pulling down
