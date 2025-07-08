@@ -14,16 +14,20 @@ function PdfUploadForm() {
     const [isUploading, setIsUploading] = useState(false)
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB in bytes
+    const ALLOWED_MIME_TYPES = ['application/pdf', 'application/json']
 
     const validateFile = (file: File): boolean => {
         if (file.size > MAX_FILE_SIZE) {
             setError(`File size exceeds 10MB limit. Selected file is ${(file.size / 1024 / 1024).toFixed(2)}MB`)
             return false
         }
-        if (file.type !== 'application/pdf') {
-            setError('Only PDF files are allowed')
+
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+            setError('Only PDF or JSON files are allowed')
             return false
         }
+
+        // Clear any previous error if validation passes
         setError('')
         return true
     }
@@ -137,18 +141,18 @@ function PdfUploadForm() {
 
                     <div className='cursor-pointer'>
                         <span className='text-xl font-semibold text-gray-700 hover:text-primary transition-colors'>
-                            {dragActive ? 'Drop your PDF here' : 'Click to upload or drag and drop'}
+                            {dragActive ? 'Drop your file here' : 'Click to upload or drag and drop'}
                         </span>
                     </div>
 
                     <p className='text-sm text-gray-500 mt-2'>
-                        PDF file only • Single file • Up to 10MB
+                        PDF or JSON file only • Single file • Up to 10MB
                     </p>
 
                     <Input
                         ref={fileInputRef}
                         type='file'
-                        accept='application/pdf'
+                        accept='application/pdf,application/json'
                         className='hidden'
                         onChange={handleFileChange}
                     />
@@ -206,7 +210,7 @@ function PdfUploadForm() {
                     className='w-full h-12 text-lg font-semibold bg-gradient-to-r from-primary to-amber-600 hover:from-primary/90 hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl'
                     disabled={!selectedFile || !!error || isUploading}
                 >
-                    {isUploading ? 'Uploading...' : selectedFile ? 'Upload PDF File' : 'Select PDF File to Upload'}
+                    {isUploading ? 'Uploading...' : selectedFile ? 'Upload File' : 'Select PDF or JSON File to Upload'}
                 </Button>
             </div>
         </form>
