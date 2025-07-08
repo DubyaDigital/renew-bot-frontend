@@ -2,9 +2,10 @@
 
 import { ServerActionResponse } from "@/types/actions.type"
 
-export async function uploadPdf(file: File): Promise<ServerActionResponse<unknown>> {
+export async function uploadPdf(pdfFile: File, jsonFile: File): Promise<ServerActionResponse<unknown>> {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('files', pdfFile)
+    formData.append('files', jsonFile)
     // TODO: Update url to the actual url
     const url = `/api/upload`
     const response = await fetch(url, {
@@ -17,7 +18,7 @@ export async function uploadPdf(file: File): Promise<ServerActionResponse<unknow
     if(!response.ok) {
         return {
             success: false,
-            message: 'Failed to upload PDF'
+            message: 'Failed to upload files'
         }
     }
     return {

@@ -14,10 +14,10 @@ function PdfUploadPage() {
             <Card className='w-full max-w-2xl shadow-2xl border-0 bg-white/80 backdrop-blur-sm'>
                 <CardHeader className='text-center pb-8'>
                     <CardTitle className='text-3xl font-bold bg-gradient-to-r from-primary to-amber-600 bg-clip-text text-transparent'>
-                        Upload PDF Document
+                        Upload Documents
                     </CardTitle>
                     <CardDescription className='text-lg text-gray-600 mt-2'>
-                        Select up to 1 PDF file to upload. Drag and drop or click to browse.
+                        Select one PDF and one JSON file to upload. Drag and drop or click to browse.
                     </CardDescription>
                 </CardHeader>
                 
