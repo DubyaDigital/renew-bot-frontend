@@ -7,7 +7,7 @@ export async function uploadPdf(pdfFile: File, jsonFile: File): Promise<ServerAc
     formData.append('files', pdfFile)
     formData.append('files', jsonFile)
     // TODO: Update url to the actual url
-    const url = `https://renew-ai-bot-plugin-production.up.railway.app/bot-retraining/train-newbook`
+    const url = `https://renew-ai-bot-plugin-production.up.railway.app/bot-retraining/train-newBook`
     const response = await fetch(url, {
         method: 'POST',
         body: formData,
