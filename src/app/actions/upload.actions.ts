@@ -11,14 +11,12 @@ export async function uploadPdf(pdfFile: File, jsonFile: File): Promise<ServerAc
     const response = await fetch(url, {
         method: 'POST',
         body: formData,
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        }
     })
     if(!response.ok) {
+        const errorJson = await response.json()
         return {
             success: false,
-            message: 'Failed to upload files'
+            message: errorJson.message
         }
     }
     return {
