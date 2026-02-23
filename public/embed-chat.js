@@ -1,5 +1,21 @@
 (function () {
-    // Load required styles and scripts
+    const API_BASE = 'https://renew-bot-backend-prod-v3.up.railway.app';
+    const API_URL = API_BASE + '/chat/stream';
+
+    const getOrCreateDeviceId = () => {
+        const STORAGE_KEY = 'renew_chat_device_id';
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) return stored;
+        } catch {}
+        const hex = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+        const id = 'web-' + hex() + hex();
+        try { localStorage.setItem(STORAGE_KEY, id); } catch {}
+        return id;
+    };
+
+    const deviceId = getOrCreateDeviceId();
+
     const loadStylesheet = (url) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -7,21 +23,10 @@
         document.head.appendChild(link);
     };
 
-    const loadScript = (url) => {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = url;
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    };
+    // Load required styles
+    loadStylesheet('https://renewchatbot2.vercel.app/styles.css');
 
-    // Load Socket.IO client and styles
-    loadScript('https://cdn.socket.io/4.7.4/socket.io.min.js')
-        .then(() => {
-            // Load required styles
-            loadStylesheet('https://renewchatbot2.vercel.app/styles.css');
+    (function initChat() {
 
             // Create a shadow DOM container
             const container = document.createElement('div');
@@ -271,6 +276,21 @@
                     0%, 80%, 100% { transform: scale(0); opacity: 0; }
                     40% { transform: scale(1); opacity: 1; }
                 }
+
+                .chat-button .btn-spinner {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(0, 0, 0, 0.2);
+                    border-top-color: #000;
+                    border-radius: 50%;
+                    animation: spin 0.6s linear infinite;
+                    margin-right: 0.5rem;
+                    flex-shrink: 0;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
             `;
             shadowRoot.appendChild(style);
 
@@ -313,21 +333,11 @@
             `;
             shadowRoot.appendChild(chatContainer);
 
-            // Initialize WebSocket connection
-            const socket = io('wss://renew-ai-bot-plugin-production.up.railway.app/chat-bot', {
-                reconnection: true,
-                reconnectionAttempts: 5,
-                reconnectionDelay: 1000,
-                transports: ['websocket', 'polling'],  // Allow fallback to polling
-                timeout: 10000,  // Increase timeout
-                path: '/socket.io/',  // Explicitly set socket.io path
-                forceNew: true,
-                autoConnect: true
-            });
-
-            // Chat state
-            let isChatVisible = false; // Ensure it starts as not visible
+            let isChatVisible = false;
+            let conversationStarted = false;
+            let isStartingConversation = false;
             let messages = [];
+            let currentAbortController = null;
 
             // Helper function to scroll to bottom
             const scrollToBottom = (smooth = true) => {
@@ -424,22 +434,166 @@
                 sendButton.disabled = !e.target.value.trim();
             });
 
-            const sendMessage = () => {
+            const parseSSE = (text) => {
+                const events = [];
+                const blocks = text.split('\n\n');
+                for (const block of blocks) {
+                    if (!block.trim()) continue;
+                    let eventType = null;
+                    let data = '';
+                    for (const line of block.split('\n')) {
+                        if (line.startsWith('event:')) {
+                            eventType = line.slice(6).trim();
+                        } else if (line.startsWith('data:')) {
+                            data += line.slice(5).trim();
+                        }
+                    }
+                    if (eventType && data) {
+                        try {
+                            events.push({ event: eventType, data: JSON.parse(data) });
+                        } catch {
+                            events.push({ event: eventType, data: { raw: data } });
+                        }
+                    }
+                }
+                return events;
+            };
+
+            const sendMessage = async () => {
                 const message = input.value.trim();
                 if (!message) return;
 
+                if (currentAbortController) {
+                    currentAbortController.abort();
+                }
+                currentAbortController = new AbortController();
+
                 addMessage('user', message);
                 const thinkingIndicator = showThinking();
-                socket.emit('message', { query: message });
                 input.value = '';
                 sendButton.disabled = true;
 
-                // Remove thinking indicator when we get the first response
-                socket.once('response', () => {
+                let currentBotMessage = null;
+                let accumulatedText = '';
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message,
+                            deviceId,
+                            userAgent: navigator.userAgent,
+                            filters: {}
+                        }),
+                        signal: currentAbortController.signal
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+
+                        const parts = buffer.split('\n\n');
+                        buffer = parts.pop();
+
+                        const events = parseSSE(parts.join('\n\n'));
+
+                        for (const { event, data } of events) {
+                            // debugger
+                            if (event === 'meta') {
+                                continue;
+                            }
+
+                            if (event === 'title') {
+                                continue;
+                            }
+
+                            if (event === 'token') {
+                                if (thinkingIndicator && thinkingIndicator.parentNode) {
+                                    thinkingIndicator.remove();
+                                }
+                                if (!currentBotMessage) {
+                                    const messagesContainer = shadowRoot.querySelector('#chat-messages');
+                                    currentBotMessage = document.createElement('div');
+                                    currentBotMessage.className = 'message bot';
+                                    messagesContainer.appendChild(currentBotMessage);
+                                }
+                                accumulatedText += data.text || '';
+                                setInnerHTML(currentBotMessage, linkify(accumulatedText));
+                            }
+
+                            if (event === 'done') {
+                                debugger
+                                if (thinkingIndicator && thinkingIndicator.parentNode) {
+                                    thinkingIndicator.remove();
+                                }
+                                if (data.answer && !currentBotMessage) {
+                                    addMessage('bot', data.answer);
+                                } else if (data.answer && currentBotMessage) {
+                                    setInnerHTML(currentBotMessage, linkify(data.answer));
+                                }
+                                // if (data.citations && data.citations.length > 0) {
+                                //     const linksText = data.citations
+                                //         .map(c => c.url || c.link || c.productPage)
+                                //         .filter(Boolean)
+                                //         .join('\n');
+                                //     if (linksText) {
+                                //         const messagesContainer = shadowRoot.querySelector('#chat-messages');
+                                //         const citationDiv = document.createElement('div');
+                                //         citationDiv.className = 'message bot';
+                                //         setInnerHTML(citationDiv, linkify('Sources:\n' + linksText));
+                                //         messagesContainer.appendChild(citationDiv);
+                                //     }
+                                // }
+                                // messages.push({ role: 'bot', content: data.answer || accumulatedText });
+                                // scrollToBottom();
+                            }
+
+                            if (event === 'error') {
+                                if (thinkingIndicator && thinkingIndicator.parentNode) {
+                                    thinkingIndicator.remove();
+                                }
+                                addStatusMessage(data.message || 'An error occurred', true);
+                            }
+                        }
+                    }
+
+                    if (buffer.trim()) {
+                        const remaining = parseSSE(buffer);
+                        for (const { event, data } of remaining) {
+                            if (event === 'token' && data.text) {
+                                if (!currentBotMessage) {
+                                    const messagesContainer = shadowRoot.querySelector('#chat-messages');
+                                    currentBotMessage = document.createElement('div');
+                                    currentBotMessage.className = 'message bot';
+                                    messagesContainer.appendChild(currentBotMessage);
+                                }
+                                accumulatedText += data.text;
+                                setInnerHTML(currentBotMessage, linkify(accumulatedText));
+                            }
+                        }
+                    }
+
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    console.error('Chat stream error:', err);
                     if (thinkingIndicator && thinkingIndicator.parentNode) {
                         thinkingIndicator.remove();
                     }
-                });
+                    addStatusMessage('Failed to get a response. Please try again.', true);
+                } finally {
+                    currentAbortController = null;
+                }
             };
 
             input.addEventListener('keypress', (e) => {
@@ -450,7 +604,6 @@
 
             sendButton.addEventListener('click', sendMessage);
 
-            // Add connection status indicator
             const addStatusMessage = (message, isError = false) => {
                 const messagesContainer = shadowRoot.querySelector('#chat-messages');
                 const statusDiv = document.createElement('div');
@@ -461,73 +614,6 @@
                 messagesContainer.appendChild(statusDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             };
-
-            // Handle connection events
-            socket.on('connect', () => {
-                console.log('Socket connected successfully');
-            });
-
-            socket.on('connect_error', (error) => {
-                console.error('Socket connection error details:', {
-                    message: error.message,
-                    type: error.type,
-                    description: error.description
-                });
-                const thinkingIndicator = shadowRoot.querySelector('.thinking');
-                if (thinkingIndicator) {
-                    thinkingIndicator.remove();
-                }
-                addStatusMessage(`Connection error: ${error.message}. Retrying...`, true);
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Socket disconnected');
-                const thinkingIndicator = shadowRoot.querySelector('.thinking');
-                if (thinkingIndicator) {
-                    thinkingIndicator.remove();
-                }
-                addStatusMessage('Connection lost. Attempting to reconnect...', true);
-            });
-
-            // Handle socket events
-            socket.on('response', (chunk) => {
-                const message = chunk.message;
-                if (message === "Relevant context retrieved and sent to OpenAI for processing.") {
-                    return;
-                }
-
-                // Remove thinking indicator if it exists
-                const thinkingIndicator = shadowRoot.querySelector('.thinking');
-                if (thinkingIndicator) {
-                    thinkingIndicator.remove();
-                }
-
-                if (message === " - Response Ended") {
-                    return;
-                }
-
-                // Find or create the current bot message
-                const messagesContainer = shadowRoot.querySelector('#chat-messages');
-                let currentBotMessage = messagesContainer.lastElementChild;
-                if (!currentBotMessage || !currentBotMessage.classList.contains('bot')) {
-                    currentBotMessage = document.createElement('div');
-                    currentBotMessage.className = 'message bot';
-                    messagesContainer.appendChild(currentBotMessage);
-                }
-
-                // Append the new chunk of text and linkify it
-                const currentText = currentBotMessage.textContent || '';
-                setInnerHTML(currentBotMessage, linkify(currentText + message));
-                // scrollToBottom();
-            });
-
-            // Handle response end
-            socket.on('response_end', () => {
-                const thinkingIndicator = shadowRoot.querySelector('.thinking');
-                if (thinkingIndicator) {
-                    thinkingIndicator.remove();
-                }
-            });
 
             // Add keyboard event handlers for mobile
             const handleMobileKeyboard = () => {
@@ -563,26 +649,64 @@
             // Initialize keyboard handling
             handleMobileKeyboard();
 
-            // Toggle chat visibility with keyboard awareness
-            const toggleChat = () => {
-                isChatVisible = !isChatVisible;
-                chatContainer.style.display = isChatVisible ? 'flex' : 'none';
-                chatButton.classList.toggle('chat-open', isChatVisible);
-                if (isChatVisible) {
-                    input.focus();
-                    setTimeout(() => {
-                        const messagesContainer = shadowRoot.querySelector('#chat-messages');
-                        if (messagesContainer) {
-                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                        }
-                    }, 100);
+            const showChat = () => {
+                isChatVisible = true;
+                chatContainer.style.display = 'flex';
+                chatButton.classList.add('chat-open');
+                input.focus();
+                setTimeout(() => {
+                    const messagesContainer = shadowRoot.querySelector('#chat-messages');
+                    if (messagesContainer) {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                }, 100);
+            };
+
+            const hideChat = () => {
+                isChatVisible = false;
+                chatContainer.style.display = 'none';
+                chatButton.classList.remove('chat-open');
+            };
+
+            const startConversation = async () => {
+                if (isStartingConversation) return;
+                isStartingConversation = true;
+
+                const originalText = chatButton.textContent;
+                chatButton.innerHTML = '<div class="btn-spinner"></div> Loading...';
+                chatButton.disabled = true;
+
+                try {
+                    const res = await fetch(API_BASE + '/conversations/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            deviceId,
+                            userAgent: navigator.userAgent
+                        })
+                    });
+                    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+                    conversationStarted = true;
+                    showChat();
+                } catch (err) {
+                    console.error('Failed to start conversation:', err);
+                    chatButton.textContent = originalText;
+                } finally {
+                    chatButton.disabled = false;
+                    chatButton.textContent = originalText;
+                    isStartingConversation = false;
                 }
             };
 
-            // Add click event listener to the button
             chatButton.addEventListener('click', (e) => {
                 e.stopPropagation();
-                toggleChat();
+                if (isChatVisible) {
+                    hideChat();
+                } else if (conversationStarted) {
+                    showChat();
+                } else {
+                    startConversation();
+                }
             });
 
             // Prevent chat container clicks from bubbling up
@@ -590,10 +714,9 @@
                 e.stopPropagation();
             });
 
-            // Close chat when clicking outside
             document.addEventListener('click', (event) => {
                 if (isChatVisible && !chatButton.contains(event.target) && !chatContainer.contains(event.target)) {
-                    toggleChat();
+                    hideChat();
                 }
             });
 
@@ -635,8 +758,5 @@
             messagesContainer.addEventListener('touchend', () => {
                 touchStartY = null;
             });
-        })
-        .catch(error => {
-            console.error('Error loading Socket.IO:', error);
-        });
-})(); 
+    })();
+})();
